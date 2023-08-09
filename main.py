@@ -19,7 +19,7 @@ import json
 
 
 
-DEFAULT_CLIENT_ID = "osmobb"
+DEFAULT_CLIENT_ID = "nitb"
 CLIENTS = ['nitb', 'osmobb']
 CLIENTS.remove(DEFAULT_CLIENT_ID)
 
@@ -86,38 +86,33 @@ def on_message(client, userdata, message):
 async def handle_client(reader, writer):
     socket = [reader, writer]
     global client
-    try:
-        while True:
-            data = await reader.read(240)
-            if not data:
-                break
+    
+    while True:
+        data = await reader.read(240)
+        if not data:
+            break
 
+        try:
+            data = data.decode('ascii').strip()
+        except:
             try:
                 data = data.decode('ascii').strip()
             except:
-                try:
-                    data = data.decode('ascii').strip()
-                except:
-                    ess.debugprint(source="WEBSOCKET",message=F'Received Invalid data',code=0)
-                    break
+                ess.debugprint(source="WEBSOCKET",message=F'Received Invalid data',code=0)
+                break
 
-            ess.debugprint(source="WEBSOCKET",message=F'client sent {data}',code=2)
+        ess.debugprint(source="WEBSOCKET",message=F'client sent {data}',code=2)
 
-            if 'activate-telnet' in data:
-                conns['telnet'] = socket
+        if 'activate-telnet' in data:
+            conns['telnet'] = socket
 
-            if DEFAULT_CLIENT_ID == 'osmobb':
-                await obm.handle_local_client(data=data, socket=socket, client=client)
-            elif DEFAULT_CLIENT_ID == 'nitb':
-                await nib.handle_local_client(data=data, socket=socket, client=client)
-            else:
-                ess.debugprint(source="WEBSOCKET",message=F"Unhandled\n",code=0)
-    except asyncio.CancelledError:
-        pass
-    finally:
-        writer.close()
-        await writer.wait_closed()
-        ess.debugprint(source="WEBSOCKET",message=F"Client disconnected.\n",code=0)
+        if DEFAULT_CLIENT_ID == 'osmobb':
+            await obm.handle_local_client(data=data, socket=socket, client=client)
+        elif DEFAULT_CLIENT_ID == 'nitb':
+            await nib.handle_local_client(data=data, socket=socket, client=client)
+        else:
+            ess.debugprint(source="WEBSOCKET",message=F"Unhandled\n",code=0)
+        
 
 # mqtt loop
 async def run_mqtt(client):

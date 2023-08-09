@@ -1,5 +1,5 @@
 import requests
-import json
+import json, os
 
 requests.packages.urllib3.util.ssl_.DEFAULT_CIPHERS += 'HIGH:!DH:!aNULL'
 try:
@@ -8,6 +8,7 @@ except AttributeError:
     # no pyopenssl support used / needed / available
     pass
 requests.packages.urllib3.disable_warnings()
+path = "/".join(os.path.abspath(__file__).split('/')[:-2]) + "/nitb/ussds/cgrate.json"
 
 class CGrate:
 
@@ -18,8 +19,10 @@ class CGrate:
         "application": "543-USSD",
     }
     """
-    def __init__(self, username="", password="", is_web=False):
-
+    def __init__(self, username="0962982697", password="26261", is_web=False, db=path):
+        self.username = username
+        self.password = password
+        self.db = path
         self.headers = {
             "content-type": "application/json",
             "accept-encoding": "gzip",
@@ -27,17 +30,14 @@ class CGrate:
         }
         self.is_web = is_web
         self.url = "https://543.cgrate.co.zm:4000/auth/v1/login"
-
-        if not username or not password:
-            self.username = "0962982697"
-            self.password = "26261"
-            with open('ussds/cgrate.json', 'r') as file:
+        
+        try:
+            with open(path, 'r') as file:
                 data = json.loads(file.read())
                 if 'token' in data.keys():
                     self.headers["cgrateauthorization"] = F"Bearer {data['token']}"
-        else:
-            self.username = username
-            self.password = password
+        except:
+            self.login(username, password)
 
         if not self.test_network():
             self.login(username, password)
@@ -55,7 +55,7 @@ class CGrate:
             }
             self.response = requests.post(self.url, json=self.payload, headers=self.headers, verify=False)
             self.headers['cgrateauthorization'] = F"Bearer {json.loads(self.response.text)['accessToken']}"
-            with open('ussds/cgrate.json', 'w') as file:
+            with open(self.db, 'w') as file:
                 file.write(json.dumps({'token':json.loads(self.response.text)['accessToken']}))
             l = self.response.status_code == 200
         return l

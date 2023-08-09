@@ -6,6 +6,7 @@ import asyncio
 import telnetlib
 import json
 from ..common import essentials as ess
+from .ussd import USSD
 
 ess.debug = True
 
@@ -15,8 +16,13 @@ SERVICES = ["osmo-nitb.service", "osmo-trx-lms.service", "osmo-bts-trx.service"]
 
 #handle ussd messages
 async def handle_ussd(data):
-    dat_len = len(data['text'])
-    resp = data['text'].encode('ascii')
+    if data:
+        dat_len = len(data['text'])
+        resp = USSD()
+        resp = resp.handle_req(data)
+        ess.debugprint(source="WEBSOCKET",message=F"local client {resp!r}\n",code=6)
+    else:
+        resp = "Invalid input".encode('ascii')
     if dat_len > 131:
         resp = data['text'][:131]
     return resp
@@ -155,21 +161,19 @@ async def handle_message(message, client):
 
 async def handle_local_client(data=None, socket=[], client=None):
     reader, writer = socket
-    try:
-        if ess.is_json(data):
-            data = json.loads(data)
-            # code to run nitb requests
-            if data['type'] == 'cmd' and 'sres' in data.keys():
-                client.publish('osmobb', json.dumps(data))
-                ess.debugprint(source="WEBSOCKET",message=F"Sent {data} to osmobb",code=5)
-
-            # code to run osmobb requests
-
-            
-
-    except:
-        pass
-    finally:
-        writer.close()
-        await writer.wait_closed()
-        ess.debugprint(source="WEBSOCKET",message=F"Client disconnected.\n",code=0)
+    if ess.is_json(data):
+        data = json.loads(data)
+        # code to run nitb requests
+        
+        if data['type'] == 'cmd' and 'sres' in data.keys():
+            client.publish('osmobb', json.dumps(data))
+            ess.debugprint(source="WEBSOCKET",message=F"Sent {data} to osmobb",code=5)
+        elif data['type'] == 'ussd':
+            res = await handle_ussd(data)
+            await asyncio.sleep(3)
+            writer.write(res)
+            await writer.drain()
+        else:
+            pass
+        # code to run osmobb requests
+       

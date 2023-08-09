@@ -1,11 +1,13 @@
 import asyncio
-import json 
+import json, os
 from scripts.common.cgrate import CGrate
 
+path = "/".join(os.path.abspath(__file__).split('/')[:-1]) + "/ussds/airtel-agent-menu.json"
 
 class USSD:
 
-    def __init__(self, menu_data="", ussd_sessions={}) -> None:
+    def __init__(self, menu_data=path, ussd_sessions={}) -> None:
+        print('initialising')
         if menu_data:
             if menu_data.endswith('.json'):
                 menu_data = open(menu_data, 'r').read()
@@ -122,6 +124,7 @@ class USSD:
         
     #handles requests and render accordingly
     def handle_req(self, data):
+        print('running 3') 
         dat_len = len(data['text'])
         resp = ""
         if not 1 <= dat_len <= self.cuttof:
@@ -135,6 +138,8 @@ class USSD:
 
         if len(resp) > self.cuttof:
             resp = resp[:self.cuttof]
+
+        print('running')
         return resp
     
     def test(self):
