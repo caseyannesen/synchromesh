@@ -7,18 +7,18 @@ DEBUG = True
 
 
 import paho.mqtt.client as mqtt
-import scripts.common.essentials as ess # Essential functions common to all CHEAPRAY software
+from scripts.common import essentials as ess # Essential functions common to all CHEAPRAY software
 ess.debug = DEBUG
 
 
-import scripts.nitb.nitbman as nib # Functions to manage the remote CHEAPRAY network
-import scripts.osmobb.osmobbman as obm # Functions to manage the remote CHEAPRAY cloner
+from scripts.nitb import nitbman as nib # Functions to manage the remote CHEAPRAY network
+from scripts.osmobb import osmobbman as obm # Functions to manage the remote CHEAPRAY cloner
 import subprocess, os
 import asyncio
 import json
 
 
-DEFAULT_CLIENT_ID = "nitb"
+DEFAULT_CLIENT_ID = "osmobb"
 CLIENTS = ['nitb', 'osmobb']
 CLIENTS.remove(DEFAULT_CLIENT_ID)
 
@@ -54,6 +54,7 @@ def on_disconnect(client, userdata, flags, rc):
 
 # Connect callback function (subscribes and notifies connection)
 def on_connect(client, userdata, flags, rc):
+    ess.debugprint(source="MQTT",message=F"Connection result: {rc}",code=1)
     if rc == 0:
         ess.debugprint(source="MQTT",message="Connected to MQTT broker",code=1)
         client.subscribe(DEFAULTS['broker']['subscription'])  # Replace with the desired topic to subscribe to
@@ -61,6 +62,7 @@ def on_connect(client, userdata, flags, rc):
         message['message'] = 'connected'
         for pub in DEFAULTS['broker']['publish_to']:
             client.publish(pub, json.dumps(message))
+            ess.debugprint(source="MQTT",message=F"Sent {message} to {pub}",code=5)
     else:
         ess.debugprint(source="MQTT",message="Connection failed",code=0)
 
@@ -118,7 +120,7 @@ async def handle_client(reader, writer):
 
             if 'activate-telnet' in data:
                 conns['telnet'] = socket
-                
+
             if DEFAULT_CLIENT_ID == 'osmobb':
                 await obm.handle_local_client(data=data, socket=socket, client=client)
             elif DEFAULT_CLIENT_ID == 'nitb':
@@ -150,7 +152,7 @@ async def main():
 
     #configure MQTT
     broker = DEFAULTS['broker']
-    broker['on_connect'], broker['on_disconnect'], broker['on_message'] = on_disconnect, on_connect, on_message
+    broker['on_disconnect'], broker['on_connect'], broker['on_message'] = on_disconnect, on_connect, on_message
     client = await ess.get_client(**broker)
 
 

@@ -7,6 +7,14 @@ import asyncio
 
 debug = False
 
+def is_json(data):
+    try:
+        json.loads(data)
+    except:
+        return False
+    return True
+
+
 #prints debug messages
 def debugprint(source="NONE",message="",code=0):
     if debug:
