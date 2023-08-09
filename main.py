@@ -18,7 +18,8 @@ import asyncio
 import json
 
 
-DEFAULT_CLIENT_ID = "osmobb"
+
+DEFAULT_CLIENT_ID = "nitb"
 CLIENTS = ['nitb', 'osmobb']
 CLIENTS.remove(DEFAULT_CLIENT_ID)
 
@@ -68,6 +69,8 @@ def on_connect(client, userdata, flags, rc):
 
 def on_message(client, userdata, message):
     msg, topic = message.payload.decode(), message.topic
+
+    ess.debugprint(source="MQTT",message=F"RX: {msg!r}\nTopic: {topic!r}\n",code=5)
     
     if topic == 'osmobb':
         asyncio.run(obm.handle_message(msg, client))
@@ -76,25 +79,7 @@ def on_message(client, userdata, message):
     else:
         ess.debugprint(source="MQTT",message=F"Unhandled\n",code=0)
 
-    '''
-    msgg = json.loads(msg)
-    if msgg['type'] == 'usr':
-        if not msgg['is_res']:
-            msgg['msg'] = execute_command(msgg['msg'])
-            msgg['is_res'] = True
-            client.publish(pub, json.dumps(msgg))
-        else:
-            print(msgg['msg'])
-    elif msgg['type'] =='cmd' and msgg['is_json']:
-        msgg['msg'] = handle_cmd(msgg['msg'], client)
-        msgg['is_res'] = True
-        client.publish(pub, json.dumps(msgg))
-        
-    else:
-        ess.debugprint(source="MQTT",message=F"Unhandled\n",code=0)
-    '''
     
-    ess.debugprint(source="MQTT",message=F"RX: {msg!r}\nTopic: {topic!r}\n",code=3)
 
 
 # local websocket client handler

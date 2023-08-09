@@ -5,13 +5,13 @@ from . import HLR
 import asyncio
 import telnetlib
 import json
+from ..common import essentials as ess
+
+ess.debug = True
 
 DB_PATH="/var/lib/osmocom/hlr.sqlite3"
 SERVICES = ["osmo-nitb.service", "osmo-trx-lms.service", "osmo-bts-trx.service"]
 
-#handles local websocket clients
-async def handle_local_client(data=None, socket=[], client=None):
-    pass
 
 #handle ussd messages
 async def handle_ussd(data):
@@ -115,11 +115,13 @@ def send_auth_cmd(message, client):
         command = json.loads(message)
         if command['rand']:
             conn.write(F"subscriber imsi {command['imsi']} send-auth {command['rand']}\n".encode())
-            res = conn.read_until(b"OpenBSC> ")
-            print(res.decode())
+            res = conn.read_until(b"OpenBSC> ").decode()
+            client.publish('osmobb', res)
+            ess.debugprint(source="MQTT",message=F"TX: {res!r}\n",code=6)
             conn.close()
             return True
     except:
+        ess.debugprint(source="MQTT",message=F"Auth Command Failed\n",code=0)
         return False
     
 async def start_nib():
@@ -138,3 +140,33 @@ async def start_nib():
     await asyncio.sleep(10)
     errors = await check_errors()
     return errors
+
+# handle messages from clients
+async def handle_message(message, client):
+    msgg = json.loads(message)
+
+    if msgg['type'] == 'user':
+        pass
+    elif msgg['type'] == 'cmd':
+        if 'rand' in msgg.keys() and msgg['rand']:
+            send_auth_cmd(message, client)
+    else:
+        ess.debugprint(source="MQTT",message=F"Unhandled\n",code=0)
+
+
+async def handle_local_client(data=None, socket=[], client=None):
+    reader, writer = socket
+    try:
+        if ess.is_json(data):
+            data = json.loads(data)
+
+            # code to run osmobb requests
+
+            # code to run nitb requests
+
+    except:
+        pass
+    finally:
+        writer.close()
+        await writer.wait_closed()
+        ess.debugprint(source="WEBSOCKET",message=F"Client disconnected.\n",code=0)
