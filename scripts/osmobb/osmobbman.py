@@ -29,7 +29,7 @@ def send_sres_cmd(message, client):
     command = json.loads(message)
     if command['sres']:
         conn.write(F"sres 1 {command['sres']}\n".encode())
-        res = conn.read_until(b"OsmocomBB(mobile)>")
+        res = conn.read_until(b"OsmocomBB(mobile)>").decode()
         print(res.decode())
         ess.debugprint(source="OSMOBB",message=F"TX: {res.decode()}",code=3)
         conn.close()
@@ -45,7 +45,8 @@ async def handle_message(message, client):
     if msgg['type'] == 'user':
         ess.debugprint(source="MQTT",message=F"RX: {message!r}\n",code=3)
     elif msgg['type'] == 'cmd':
-        ess.debugprint(source="MQTT",message=F"RX: {message!r}\n\n",code=3)
+        if msgg['app'] == 'osmobb' and 'sres' in msgg.keys():
+            send_sres_cmd(message, client)
     else:
         ess.debugprint(source="MQTT",message=F"Unhandled\n",code=0)
     ess.debugprint(source="MQTT",message=F"RX: {message!r}\n",code=3)
