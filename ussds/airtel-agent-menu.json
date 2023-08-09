@@ -1,0 +1,98 @@
+{
+    "access_code":"*115#",
+    "type": "initial",
+    "text":"Welcome to Airtel Money.",
+    "footer": "Press 0 for main menu or * for previous menu",
+    "options":[
+        {   "type":"option",
+            "text": "Deposit Money",
+            "footer": "Press 0 for main menu or * for previous menu",
+            "options": [
+                    {
+                        "type":"option",
+                        "text": "Direct Deposit", 
+                        "options": [
+                            {   
+                                "type":"data",
+                                "func":"get-user",
+                                "text":"Enter Receiver's Number"
+                            }]
+                    },
+                    
+                    {
+                        "type":"option",
+                        "text":"Deposit on Behalf",
+                        "options": []
+                    }
+                ]},
+
+        {   
+            "type":"option",
+            "text": "Withdraw",
+            "footer": "Press 0 for main menu or * for previous menu",
+            "options": [
+                    {"type":"option","text":"Withdraw Offnet","options":[]},
+                    {"type":"option","text":"Withdraw OTP","options":[]}
+            ]},
+        
+        {"type":"option","text":"Na Sova Loans", "options": [{"type":"data","func":"get-pin","text":"Enter your Airtel Money pin to use this Service"}]},
+
+        {
+            "type":"option", 
+            "text": "Move To Dealer",
+            "footer": "Press 0 for main menu or * for previous menu",
+            "options" :
+                [{"type":"data", "text":"Enter Dealer Phone Number or Dealer code"}]
+        },
+
+        {
+            "type":"option", 
+            "text":"Make Payment",
+            "footer": "Press 0 for main menu or * for previous menu",
+            "options": [
+                {"type":"option", "text": "Buy Zesco units","options":[]},
+                {"type":"option", "text": "GOTV","options":[]},
+                {"type":"option", "text": "DSTV","options":[]},
+                {"type":"option", "text": "ZUKU TV","options":[]},
+                {"type":"option", "text": "Muvi TV","options":[]},
+                {"type":"option", "text": "Lusaka Water Postpaid","options":[]},
+                {"type":"option", "text": "Airtel Postpaid","options":[]},
+                {"type":"option", "text": "Other Businesses","options":[]},
+                {"type":"option", "text": "BETWAY","options":[]},
+                {"type":"option", "text": "Eastern Water","options":[]},
+                {"type":"option", "text": "Kafubu Water","options":[]},
+                {"type":"option", "text": "Southern","options":[]},
+                {"type":"option", "text": "#next","options":[]}]
+        },
+
+        {
+            "type":"option",
+            "text":"Buy SoChe or Airtime",
+            "options": [
+                {"type":"option","text":"So Che Pack","options":[]},
+                {"type":"option","text":"Buy Airtime","options":[]},
+                {"type":"option","text":"Sell Data","options":[]},
+                {"type":"option","text":"Sell Soche","options":[]}]
+        },
+
+        {
+            "type":"option", 
+            "text": "My Account/PIN",
+            "options" : 
+                [{"type":"option", "text":"Link Card","options":[]},
+                {"type":"option", "text":"Check Balance","options":[]},
+                {"type":"option", "text":"Change PIN","options":[]},
+                {"type":"option", "text":"Locate an Agent","options":[]},
+                {"type":"option", "text":"My Bank Account","options":[]},
+                {"type":"option", "text":"Register Secret Word","options":[]},
+                {"type":"option", "text":"Report","options":[]},
+                {"type":"option", "text":"Emergency Contacts","options":[]}]
+        },
+
+        {"type":"option", "text":"Get Help","options":[{"type":"option","text": "Please Enter Airtel Money Pin to continue"}]},
+        {"type":"option", "text":"AML Agent Training","options":[{"type":"option","text":"1.AML Awareness Tutorial"}]}
+        
+
+
+    ]
+}
