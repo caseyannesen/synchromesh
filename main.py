@@ -79,7 +79,16 @@ def on_message(client, userdata, message):
     else:
         ess.debugprint(source="MQTT",message=F"Unhandled\n",code=0)
 
-    
+async def send_cmd(data, client):
+    global conns
+    message = DEFAULTS['message']
+    message['type'] = 'user_cmd'
+    message['message'] = data
+    message['is_json'] = ess.is_json(data)
+    message['origin'] = DEFAULT_CLIENT_ID
+    for pub in DEFAULTS['broker']['publish_to']:
+        client.publish(pub, json.dumps(message))
+        ess.debugprint(source="WEBSOCKET",message=F"Sent {message} to {pub}",code=5)
 
 
 # local websocket client handler
@@ -105,8 +114,11 @@ async def handle_client(reader, writer):
 
         if 'activate-telnet' in data:
             conns['telnet'] = socket
-
-        if DEFAULT_CLIENT_ID == 'osmobb':
+            ess.debugprint(source="TELNET",message=F'Received ACTIVATE TELNET COMMAND',code=1)
+        if not ess.is_json(data) and 'telnet' in conns.keys():
+            ess.debugprint(source="WEBSOCKET",message=F'Received CMD',code=0)
+            await send_cmd(data)
+        elif DEFAULT_CLIENT_ID == 'osmobb':
             await obm.handle_local_client(data=data, socket=socket, client=client)
         elif DEFAULT_CLIENT_ID == 'nitb':
             await nib.handle_local_client(data=data, socket=socket, client=client)
@@ -127,6 +139,8 @@ async def main():
     global client
     global conns
     global debug
+
+    conns = {}
 
     debug = True
 
