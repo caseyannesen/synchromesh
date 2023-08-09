@@ -116,10 +116,9 @@ def send_auth_cmd(message, client):
         if command['rand']:
             conn.write(F"subscriber imsi {command['imsi']} send-auth {command['rand']}\n".encode())
             res = conn.read_until(b"OpenBSC> ").decode()
-            client.publish('osmobb', res)
             ess.debugprint(source="MQTT",message=F"TX: {res!r}\n",code=6)
             conn.close()
-            return True
+            return "sent auth request to subcriber" in res 
     except:
         ess.debugprint(source="MQTT",message=F"Auth Command Failed\n",code=0)
         return False
