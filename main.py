@@ -49,7 +49,7 @@ DEFAULTS = {
 ######### Define callback functions#######
 
 # Disconnect callback function
-def on_disconnect(client, userdata, flags, rc):
+def on_disconnect(client, userdata, rc):
     pass
 
 # Connect callback function (subscribes and notifies connection)
