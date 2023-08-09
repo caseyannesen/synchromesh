@@ -19,7 +19,7 @@ import json
 
 
 
-DEFAULT_CLIENT_ID = "nitb"
+DEFAULT_CLIENT_ID = "osmobb"
 CLIENTS = ['nitb', 'osmobb']
 CLIENTS.remove(DEFAULT_CLIENT_ID)
 
