@@ -158,10 +158,14 @@ async def handle_local_client(data=None, socket=[], client=None):
     try:
         if ess.is_json(data):
             data = json.loads(data)
+            # code to run nitb requests
+            if data['type'] == 'cmd' and 'sres' in data.keys():
+                client.publish('osmobb', json.dumps(data))
+                ess.debugprint(source="WEBSOCKET",message=F"Sent {data} to osmobb",code=5)
 
             # code to run osmobb requests
 
-            # code to run nitb requests
+            
 
     except:
         pass
