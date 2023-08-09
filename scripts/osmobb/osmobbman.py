@@ -1,6 +1,7 @@
 import json
 import random
 import telnetlib
+import time 
 DEBUG = True
 
 from ..common import essentials as ess
@@ -39,16 +40,15 @@ def execute_message_command(command):
 
 # handle messages from clients
 async def handle_message(message, client):
-    msg, topic = message.payload.decode(), message.topic
-    msgg = json.loads(msg)
+    msgg = json.loads(message)
 
     if msgg['type'] == 'user':
-        ess.debugprint(source="MQTT",message=F"RX: {msg!r}\nTopic: {topic!r}\n",code=3)
+        ess.debugprint(source="MQTT",message=F"RX: {message!r}\n",code=3)
     elif msgg['type'] == 'cmd':
-        ess.debugprint(source="MQTT",message=F"RX: {msg!r}\nTopic: {topic!r}\n",code=3)
+        ess.debugprint(source="MQTT",message=F"RX: {message!r}\n\n",code=3)
     else:
         ess.debugprint(source="MQTT",message=F"Unhandled\n",code=0)
-    ess.debugprint(source="MQTT",message=F"RX: {msg!r}\nTopic: {topic!r}\n",code=3)
+    ess.debugprint(source="MQTT",message=F"RX: {message!r}\n",code=3)
 
 # handle local websocker messages
 async def handle_local_client(data=None, socket=[], client=None):
@@ -56,9 +56,17 @@ async def handle_local_client(data=None, socket=[], client=None):
     try:
         if ess.is_json(data):
             data = json.loads(data)
+            
+             # code to automated requests
+            if data['type'] == 'cmd':
+                # code to run osmobb requests
+                # test for auth command and publish to nitb
+                if data['app'] == 'nitb' and data['rand']:
+                    if client:
+                        data['time'] = time.time()
+                        client.publish('nitb', json.dumps(data))
 
-            # code to run osmobb requests
-
+        
             # code to run nitb requests
 
     except:
