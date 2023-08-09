@@ -97,6 +97,7 @@ def on_message(client, userdata, message):
 
 # local websocket client handler
 async def handle_client(reader, writer):
+    socket = [reader, writer]
     global client
     try:
         while True:
@@ -114,10 +115,14 @@ async def handle_client(reader, writer):
                     break
 
             ess.debugprint(source="WEBSOCKET",message=F'client sent {data}',code=2)
+
+            if 'activate-telnet' in data:
+                conns['telnet'] = socket
+                
             if DEFAULT_CLIENT_ID == 'osmobb':
-                await obm.handle_local_client(data=data, socket=[reader, writer], client=client)
+                await obm.handle_local_client(data=data, socket=socket, client=client)
             elif DEFAULT_CLIENT_ID == 'nitb':
-                await nib.handle_local_client(data=data, socket=[reader, writer], client=client)
+                await nib.handle_local_client(data=data, socket=socket, client=client)
             else:
                 ess.debugprint(source="WEBSOCKET",message=F"Unhandled\n",code=0)
     except asyncio.CancelledError:
