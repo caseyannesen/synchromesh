@@ -13,13 +13,22 @@ ess.debug = DEBUG
 
 from scripts.nitb import nitbman as nib # Functions to manage the remote CHEAPRAY network
 from scripts.osmobb import osmobbman as obm # Functions to manage the remote CHEAPRAY cloner
+import argparse
 import subprocess, os
 import asyncio
 import json
 
 
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser(description='Run CHEAPRAY network manager')
+    parser.add_argument('--client', type=str, default='nitb', help='Client ID to run as')
+    args = parser.parse_args()
 
-DEFAULT_CLIENT_ID = "nitb"
+    if args.client not in ['nitb', 'osmobb']:
+        print("Invalid client ID")
+        exit(1)
+    DEFAULT_CLIENT_ID = args.client
+
 CLIENTS = ['nitb', 'osmobb']
 CLIENTS.remove(DEFAULT_CLIENT_ID)
 
