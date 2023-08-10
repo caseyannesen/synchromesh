@@ -1,6 +1,6 @@
 import subprocess
 import os
-import datetime
+import datetime, time
 from . import HLR
 import asyncio
 import telnetlib
@@ -112,22 +112,37 @@ async def configure(config_path="/etc/osmocom", stop_services=True, install_serv
     subprocess.call("systemctl daemon-reload", shell=True)
     return True
 
-#send auth command to openbsc
-def send_auth_cmd(message, client):
+    
+# release ms connection
+def send_release_cmd(imsi):
     try:
+        print('i ama running')
+        time.sleep(20)
         conn = telnetlib.Telnet("127.0.0.1", 4242)
         conn.read_until(b"OpenBSC> ")
-
-        command = json.loads(message)
-        if command['rand']:
-            conn.write(F"subscriber imsi {command['imsi']} send-auth {command['rand']}\n".encode())
-            res = conn.read_until(b"OpenBSC> ").decode()
-            ess.debugprint(source="MQTT",message=F"TX: {res!r}\n",code=6)
-            conn.close()
-            return "sent auth request to subcriber" in res 
+        conn.write("enable\n".encode())
+        time.sleep(0.2)
+        conn.read_until(b"OpenBSC# ")
+        conn.write(F"subscriber imsi {imsi} release\n".encode())
+        time.sleep(10)
+        conn.close() 
+        ess.debugprint(source="AUTH",message=F"Released {imsi!r}\n",code=6)
     except:
-        ess.debugprint(source="MQTT",message=F"Auth Command Failed\n",code=0)
-        return False
+         ess.debugprint(source="AUTH",message=F"Failed to release {imsi!r}\n",code=6)
+
+#send auth command to openbsc
+async def send_auth_cmd(message, client):
+    
+    conn = telnetlib.Telnet("127.0.0.1", 4242)
+    conn.read_until(b"OpenBSC> ")
+
+    command = json.loads(message)
+    if command['rand']:
+        conn.write(F"subscriber imsi {command['imsi']} send-auth {command['rand']}\n".encode())
+        conn.close()
+        send_release_cmd(command['imsi'])
+        print('runnung xx')
+        return True
     
 async def start_nib():
     #stop all services wait 5 seconds
@@ -154,7 +169,7 @@ async def handle_message(message, client):
         pass
     elif msgg['type'] == 'cmd':
         if 'rand' in msgg.keys() and msgg['rand']:
-            send_auth_cmd(message, client)
+            asyncio.create_task(send_auth_cmd(message, client))
     else:
         ess.debugprint(source="MQTT",message=F"Unhandled\n",code=0)
 
@@ -170,7 +185,6 @@ async def handle_local_client(data=None, socket=[], client=None):
             ess.debugprint(source="WEBSOCKET",message=F"Sent {data} to osmobb",code=5)
         elif data['type'] == 'ussd':
             res = await handle_ussd(data)
-            await asyncio.sleep(3)
             writer.write(res)
             await writer.drain()
         else:

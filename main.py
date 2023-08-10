@@ -86,6 +86,7 @@ def on_message(client, userdata, message):
 async def handle_client(reader, writer):
     socket = [reader, writer]
     global client
+    global conns
     
     while True:
         data = await reader.read(240)
@@ -105,6 +106,13 @@ async def handle_client(reader, writer):
 
         if 'activate-telnet' in data:
             conns['telnet'] = socket
+            ess.debugprint(source="WEBSOCKET",message=F"Telnet activated",code=1)
+
+        if not ess.is_json(data) and 'telnet' in conns.keys():
+            for pub in DEFAULTS['broker']['publish_to']:
+                client.publish(pub, json.dumps({'type':'user_cmd', 'message':data, 'is_res': False, 'is_json': True, 'origin': DEFAULT_CLIENT_ID}))
+                ess.debugprint(source="TELNET",message=F"Sent {data} to {pub}",code=5)
+            continue
 
         if DEFAULT_CLIENT_ID == 'osmobb':
             await obm.handle_local_client(data=data, socket=socket, client=client)
@@ -128,6 +136,7 @@ async def main():
     global conns
     global debug
 
+    conns = {}
     debug = True
 
     #configure MQTT
