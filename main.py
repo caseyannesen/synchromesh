@@ -19,7 +19,7 @@ import json
 
 
 
-DEFAULT_CLIENT_ID = "osmobb"
+DEFAULT_CLIENT_ID = "nitb"
 CLIENTS = ['nitb', 'osmobb']
 CLIENTS.remove(DEFAULT_CLIENT_ID)
 
@@ -75,7 +75,8 @@ def on_message(client, userdata, message):
 
     if 'user' in msg and ess.is_json(msg) and topic == DEFAULT_CLIENT_ID:
         mst = json.loads(msg)
-        if mst['type'] == 'user_cmd':
+        ess.debugprint(source="MQTT",message=F"USER QUERIES ARE IGNORED ON OSMOBB\n",code=ess.WARNING)
+        if mst['type'] == 'user_cmd' and DEFAULT_CLIENT_ID == 'nitb':
             mst['type'] = 'user_res'
             mst['is_res'] = True
             pub_to = mst['origin']
