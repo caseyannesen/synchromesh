@@ -71,6 +71,20 @@ def on_message(client, userdata, message):
     msg, topic = message.payload.decode(), message.topic
 
     ess.debugprint(source="MQTT",message=F"RX: {msg!r}\nTopic: {topic!r}\n",code=5)
+
+    if 'user' in msg and ess.is_json(msg):
+        mst = json.loads(msg)
+        if mst['type'] == 'user_cmd':
+            mst['type'] == 'user_res'
+            mst['is_res'] == True
+            pub_to = mst['origin']
+            mst['message'] =  ess.execute_command(mst['message'])
+            mst['origin'] = DEFAULT_CLIENT_ID
+            client.publish(pub_to, json.dumps(mst))
+        elif mst['type'] == 'user_res' and 'telnet' in conns:
+            reader, writer = conns['telnet']
+            writer.write(F"{json.loads(mst['message'])['stdout']}\n".encode())
+            asyncio.run(writer.drain())
     
     if topic == 'osmobb':
         asyncio.run(obm.handle_message(msg, client))
