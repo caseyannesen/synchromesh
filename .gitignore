@@ -1,1 +1,5 @@
-*.pyc
+#define git ignore to ignore pycache and .pyc files
+./*.pyc
+**/__pycache__/
+**/*.pyc
+./__pycache__/

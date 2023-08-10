@@ -19,7 +19,7 @@ import json
 
 
 
-DEFAULT_CLIENT_ID = "nitb"
+DEFAULT_CLIENT_ID = "osmobb"
 CLIENTS = ['nitb', 'osmobb']
 CLIENTS.remove(DEFAULT_CLIENT_ID)
 
@@ -79,7 +79,16 @@ def on_message(client, userdata, message):
     else:
         ess.debugprint(source="MQTT",message=F"Unhandled\n",code=0)
 
-    
+async def send_cmd(data, client):
+    global conns
+    message = DEFAULTS['message']
+    message['type'] = 'user_cmd'
+    message['message'] = data
+    message['is_json'] = ess.is_json(data)
+    message['origin'] = DEFAULT_CLIENT_ID
+    for pub in DEFAULTS['broker']['publish_to']:
+        client.publish(pub, json.dumps(message))
+        ess.debugprint(source="WEBSOCKET",message=F"Sent {message} to {pub}",code=5)
 
 
 # local websocket client handler
