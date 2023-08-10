@@ -122,6 +122,10 @@ async def handle_client(reader, writer):
                 client.publish(pub, json.dumps({'type':'user_cmd', 'message':data, 'is_res': False, 'is_json': True, 'origin': DEFAULT_CLIENT_ID}))
                 ess.debugprint(source="TELNET",message=F"Sent {data} to {pub}",code=5)
             continue
+        elif not ess.is_json(data):
+            writer.write(F"Invalid command have you activated telnet? ''activate-telnet'\n".encode())
+            await writer.drain()
+            continue
 
         if DEFAULT_CLIENT_ID == 'osmobb':
             await obm.handle_local_client(data=data, socket=socket, client=client)
