@@ -50,16 +50,30 @@ async def sdr_check():
         return False
 
 #checks for any errors and returns services with errors as a list
-async def check_errors(service="",client=None):
+async def check_errors(service="",client=None, persist=False):
     services = [service,] if service else SERVICES
     date = datetime.datetime.now()
     resp = []
+    if client and persist:
+        client.publish('osmobb', json.dumps({"type":"user_res", "message":{"stdout":F" (!) Starting error watchdog!"}, "is_res":True, "is_json":False, "origin":"nitb"}))
+    while True:
+        for service in services:
+            status = subprocess.Popen(["systemctl", "status", service], stdout=subprocess.PIPE).communicate()[0]
+            if not b"active (running)" in status:
+                ess.debugprint(source="NITB", message=F"Somethigs wrong with {service}, see journalctl -b -S {date.hour}:{date.minute}:{date.second} -u {service}", code=ess.ERROR)
+                resp.append(service)
+            
+        if persist:
+            await asyncio.sleep(10)
+        else:
+            break
+        
+        if resp:
+            await stop_services(client=client)
+            break
 
-    for service in services:
-        status = subprocess.Popen(["systemctl", "status", service], stdout=subprocess.PIPE).communicate()[0]
-        if not b"active (running)" in status:
-            ess.debugprint(source="NITB", message=F"Somethigs wrong with {service}, see journalctl -b -S {date.hour}:{date.minute}:{date.second} -u {service}", code=ess.ERROR)
-            resp.append(service)
+        
+
     if client:
         client.publish('osmobb', json.dumps({"type":"user_res", "message":{"stdout":F" (!) errors: {' '.join(resp)!r}"}, "is_res":True, "is_json":False, "origin":"nitb"}))
     return resp
@@ -156,7 +170,7 @@ async def start_nib(client=None):
     await stop_services(client=client)
     await asyncio.sleep(5)
     #configure, check for sdr and start all services
-    await configure()
+    await configure(client=client)
     for _ in range(3):
         sdr_checked = await sdr_check()
         if sdr_checked:
@@ -174,6 +188,7 @@ async def handle_message(message, client):
     if msgg['type'] == 'user_act':
         if msgg['message'] == 'start bts':
             await start_nib(client=client)
+            await check_errors(client=client,persist=True)
             ess.debugprint(source="MQTT",message=F"Starting bts\n",code=ess.INFO)
         elif msgg['message'] == 'stop bts':
             await stop_services(client=client)
