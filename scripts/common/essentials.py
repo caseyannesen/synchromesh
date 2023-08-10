@@ -53,18 +53,16 @@ def execute_command(command="") -> dict:
         'is_run': False, 'is_failed': False
     }
 
-    if command:
-        try:
-            output = subprocess.run(command, shell=True, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-            res['returncode'] = output.returncode
-            res['stdout'] = output.stdout.strip()
-            res['stderr'] = output.stderr.strip()
-            res['is_failed'] = False
-        except subprocess.CalledProcessError as e:
-            res['is_failed'] = True
-            res['stderr'] = f"Error executing command: {e}"
+    if command and not is_json(command):
+        res["command"] = command
+        output = subprocess.run(command, shell=True, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+        res['returncode'] = output.returncode
+        res['stdout'] = output.stdout.strip()
+        res['stderr'] = output.stderr.strip()
+        res['is_failed'] = False
 
-        res['command'] = command
+        #res['is_failed'] = True
+        #res['stderr'] = f"Error executing command: {e}"
         res['is_run'] = True
     return res
 

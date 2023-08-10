@@ -19,7 +19,7 @@ import json
 
 
 
-DEFAULT_CLIENT_ID = "osmobb"
+DEFAULT_CLIENT_ID = "nitb"
 CLIENTS = ['nitb', 'osmobb']
 CLIENTS.remove(DEFAULT_CLIENT_ID)
 
@@ -72,21 +72,22 @@ def on_message(client, userdata, message):
 
     ess.debugprint(source="MQTT",message=F"RX: {msg!r}\nTopic: {topic!r}\n",code=5)
 
-    if 'user' in msg and ess.is_json(msg):
+    if 'user' in msg and ess.is_json(msg) and topic == DEFAULT_CLIENT_ID:
         mst = json.loads(msg)
         if mst['type'] == 'user_cmd':
-            mst['type'] == 'user_res'
-            mst['is_res'] == True
+            mst['type'] = 'user_res'
+            mst['is_res'] = True
             pub_to = mst['origin']
             mst['message'] =  ess.execute_command(mst['message'])
+            print(mst)
             mst['origin'] = DEFAULT_CLIENT_ID
             client.publish(pub_to, json.dumps(mst))
         elif mst['type'] == 'user_res' and 'telnet' in conns:
             reader, writer = conns['telnet']
             writer.write(F"{json.loads(mst['message'])['stdout']}\n".encode())
             asyncio.run(writer.drain())
-    
-    if topic == 'osmobb':
+
+    elif topic == 'osmobb':
         asyncio.run(obm.handle_message(msg, client))
     elif topic == 'nitb':
         asyncio.run(nib.handle_message(msg, client))
@@ -130,11 +131,13 @@ async def handle_client(reader, writer):
         if 'activate-telnet' in data:
             conns['telnet'] = socket
             ess.debugprint(source="WEBSOCKET",message=F"Telnet activated",code=1)
+            continue
 
         if not ess.is_json(data) and 'telnet' in conns.keys():
             for pub in DEFAULTS['broker']['publish_to']:
-                client.publish(pub, json.dumps({'type':'user_cmd', 'message':data, 'is_res': False, 'is_json': True, 'origin': DEFAULT_CLIENT_ID}))
-                ess.debugprint(source="TELNET",message=F"Sent {data} to {pub}",code=5)
+                dat = {'type':'user_cmd', 'message':data, 'is_res': False, 'is_json': True, 'origin': DEFAULT_CLIENT_ID}
+                client.publish(pub, json.dumps(dat))
+                ess.debugprint(source="TELNET",message=F"Sent {dat} to {pub}",code=5)
             continue
         elif not ess.is_json(data):
             writer.write(F"Invalid command have you activated telnet? ''activate-telnet'\n".encode())
