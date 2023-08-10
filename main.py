@@ -63,9 +63,10 @@ def on_connect(client, userdata, flags, rc):
         message['message'] = 'connected'
         for pub in DEFAULTS['broker']['publish_to']:
             client.publish(pub, json.dumps(message))
-            ess.debugprint(source="MQTT",message=F"Sent {message} to {pub}",code=5)
+            ess.debugprint(source="MQTT",message=F"Sent {message} to {pub}",code=ess.SUCCESS)
     else:
-        ess.debugprint(source="MQTT",message="Connection failed",code=0)
+        ess.debugprint(source="MQTT",message="Connection failed",code=ess.INFO)
+
 
 def on_message(client, userdata, message):
     msg, topic = message.payload.decode(), message.topic
@@ -83,9 +84,7 @@ def on_message(client, userdata, message):
             mst['origin'] = DEFAULT_CLIENT_ID
             client.publish(pub_to, json.dumps(mst))
         elif mst['type'] == 'user_res' and 'telnet' in conns:
-            reader, writer = conns['telnet']
-            writer.write(F"{json.loads(mst['message'])['stdout']}\n".encode())
-            asyncio.run(writer.drain())
+            asyncio.run(ess.send_to_sock(conns['telnet'], mst['message']['stdout']))
 
     elif topic == 'osmobb':
         asyncio.run(obm.handle_message(msg, client))
@@ -113,7 +112,7 @@ async def handle_client(reader, writer):
     global conns
     
     while True:
-        data = await reader.read(240)
+        data = await reader.readuntil(b"\n")
         if not data:
             break
 
@@ -123,24 +122,25 @@ async def handle_client(reader, writer):
             try:
                 data = data.decode('ascii').strip()
             except:
-                ess.debugprint(source="WEBSOCKET",message=F'Received Invalid data',code=0)
+                ess.debugprint(source="WEBSOCKET",message=F'Received Invalid data',code=ess.WARNING)
                 break
 
-        ess.debugprint(source="WEBSOCKET",message=F'client sent {data}',code=2)
+        ess.debugprint(source="WEBSOCKET",message=F'client sent {data}',code=ess.INFO)
 
         if 'activate-telnet' in data:
             conns['telnet'] = socket
-            ess.debugprint(source="WEBSOCKET",message=F"Telnet activated",code=1)
+            ess.debugprint(source="WEBSOCKET",message=F"Telnet activated",code=ess.SUCCESS)
             continue
 
         if not ess.is_json(data) and 'telnet' in conns.keys():
             for pub in DEFAULTS['broker']['publish_to']:
                 dat = {'type':'user_cmd', 'message':data, 'is_res': False, 'is_json': True, 'origin': DEFAULT_CLIENT_ID}
                 client.publish(pub, json.dumps(dat))
-                ess.debugprint(source="TELNET",message=F"Sent {dat} to {pub}",code=5)
+                ess.debugprint(source="TELNET",message=F"Sent {dat} to {pub}",code=ess.INFO)
             continue
         elif not ess.is_json(data):
             writer.write(F"Invalid command have you activated telnet? ''activate-telnet'\n".encode())
+            ess.debugprint(source="TELNET",message=F"NO TELNET IDENTIFIED",code=ess.WARNING)
             await writer.drain()
             continue
 
@@ -149,7 +149,7 @@ async def handle_client(reader, writer):
         elif DEFAULT_CLIENT_ID == 'nitb':
             await nib.handle_local_client(data=data, socket=socket, client=client)
         else:
-            ess.debugprint(source="WEBSOCKET",message=F"Unhandled\n",code=0)
+            ess.debugprint(source="WEBSOCKET",message=F"Unhandled\n",code=ess.DEBUG)
         
 
 # mqtt loop
@@ -196,7 +196,7 @@ if __name__ == '__main__':
     #set cpu freq max to 1.3GHz and governor to conservative.
     subprocess.call(F"cpupower frequency-set -g {governor}", shell=True, stdout=subprocess.DEVNULL)
     subprocess.call(F"cpupower frequency-set -u {freq}", shell=True, stdout=subprocess.DEVNULL)
-    ess.debugprint(source="CPU SET",message=F"Frequency-max @ 1.4GHz 'conservative' cores [0-3]",code=1)
+    ess.debugprint(source="CPU SET",message=F"Frequency-max @ 1.4GHz 'conservative' cores [0-3]",code=ess.INFO)
 
     
     loop = asyncio.get_event_loop()

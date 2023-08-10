@@ -1,11 +1,19 @@
 import paho.mqtt.client as mqtt
 import urllib.request as request
 import subprocess
-import json
+import inspect
 import aiohttp
 import asyncio
+import json
 
+# Global variables
 debug = False
+ESCAPE = '\033[9'
+I, S, D, W, E, C = [F"{ESCAPE}{i}m" for i in (4, 2, 5, 3, 1, 7)]
+COLORS = [I, S, D, W, E, C]
+INFO, SUCCESS, DEBUG, WARNING, ERROR, CRITICAL,  = list(range(0,6))
+DEBUG_NAMES = ['INFO', 'SUCESS', 'DEBUG', 'WARNING', 'ERROR', 'CRITICAL']
+
 
 def is_json(data):
     try:
@@ -16,10 +24,16 @@ def is_json(data):
 
 
 #prints debug messages
-def debugprint(source="NONE",message="",code=0):
+def debugprint(source="NONE",message="", code=0):
+    if code >= 6:
+        code = 5
     if debug:
-        color = F'\033[9{code + 1 if code in range(1,8) else 1}m'
-        print(F'{color}\033[2m DEBUG >> "{source}|{code}": \033[1m{message!r}\033[0m')
+        frame = inspect.stack()[1]
+        filename = frame.filename.split('/')[-1]
+        lineno = inspect.getframeinfo(frame[0]).lineno
+        func = inspect.getframeinfo(frame[0]).function
+        DATA = F"{COLORS[code]}\033[4m{DEBUG_NAMES[code]} {filename}:{lineno}\033[0m {COLORS[code]}>"
+        print(F"{DATA} {source}({func!r}) : \033[1m{message!r}\033[0m")
 
 # return the public IP address of the device
 async def check_ip(debug=False):
@@ -28,10 +42,10 @@ async def check_ip(debug=False):
             async with session.get('https://api.ipify.org?format=json') as response:
                 data = await response.text()
                 data = json.loads(data)['ip']
-                debugprint(source="CHECK_IP",message=F"YOUR IP IS: {data!r}",code=1)
+                debugprint(source="CHECK_IP",message=F"YOUR IP IS: {data!r}",code=INFO)
                 return data
         except:
-            debugprint(source="CHECK_IP",message=F"GETTING IP FAILED",code=0)  
+            debugprint(source="CHECK_IP",message=F"GETTING IP FAILED",code=WARNING)  
 
 # update dns regularly
 async def update_dns_task(access_code='RjJlWWhsUjZPbXpNaW1CVWNLUXNJb0luOjIxNzUyMTI5',refresh=300,retry=30,debug=False):
@@ -39,10 +53,10 @@ async def update_dns_task(access_code='RjJlWWhsUjZPbXpNaW1CVWNLUXNJb0luOjIxNzUyM
         while True:
             try:
                 async with session.get(F'https://freedns.afraid.org/dynamic/update.php?{access_code}') as res:
-                    debugprint(source="UPDATE_DNS",message=await res.text(),code=1)
+                    debugprint(source="UPDATE_DNS",message=await res.text(),code=INFO)
                     await asyncio.sleep(refresh)
             except:
-                debugprint(source="UPDATE_DNS",message="Failed trying agin in 30s",code=0)
+                debugprint(source="UPDATE_DNS",message="Failed trying agin in 30s",code=DEBUG)
                 await asyncio.sleep(retry)
 
 # Run a single return command and return its output
@@ -55,16 +69,28 @@ def execute_command(command="") -> dict:
 
     if command and not is_json(command):
         res["command"] = command
-        output = subprocess.run(command, shell=True, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-        res['returncode'] = output.returncode
-        res['stdout'] = output.stdout.strip()
-        res['stderr'] = output.stderr.strip()
-        res['is_failed'] = False
-
-        #res['is_failed'] = True
-        #res['stderr'] = f"Error executing command: {e}"
+        try:
+            output = subprocess.run(command, shell=True, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+            res['returncode'] = output.returncode
+            res['stdout'] = output.stdout.strip()
+            res['stderr'] = output.stderr.strip()
+            res['is_failed'] = False
+        except Exception as e:
+            res['is_failed'] = True
+            res['stderr'] = f"Error executing command: {e}"
         res['is_run'] = True
     return res
+
+# send data to a socket from anywhere
+# call using asyncio.run when calling from a non async 
+async def send_to_sock(sock, message, is_telnet=False):
+    try:
+        reader, writer = sock
+        writer.write(F"{message}\n$ ".encode())
+        await writer.drain()
+        debugprint(source=F"WEBSOCKET/{'TELNET' if is_telnet else ''}",message=F"Sent {message} via websocket",code=INFO)
+    except:
+        debugprint(source=F"WEBSOCKET/{'TELNET' if is_telnet else ''}",message=F"Sent {message} via websocket",code=WARNING)
 
 # Creates an mqtt client and connects to the broker
 async def get_client(address="",mqtt_port="",ws_port="",use_websockets=False,timeout="",username="",password="",
@@ -103,13 +129,13 @@ async def get_client(address="",mqtt_port="",ws_port="",use_websockets=False,tim
 # async webserver function to start websocket server
 async def run_local_sock_server(address="",port="",id="",handle_client=None, **kwargs):
     if not (address and port and handle_client):
-        debugprint(source="WEBSERVER",message="NO valid addr, port or handle_client",code=0)
+        debugprint(source="WEBSERVER",message="NO valid addr, port or handle_client",code=ERROR)
         return False
     
     global ussd_sessions
     ussd_sessions = {}
     server = await asyncio.start_server(handle_client, address, port)
-    debugprint(source="WEBSERVER",message=F"WebSocket server started and listening on {address}:{port}",code=1)
+    debugprint(source="WEBSERVER",message=F"WebSocket server started and listening on {address}:{port}",code=SUCCESS)
     
     try:
         await server.serve_forever()
