@@ -19,7 +19,7 @@ import json
 
 
 
-DEFAULT_CLIENT_ID = "nitb"
+DEFAULT_CLIENT_ID = "osmobb"
 CLIENTS = ['nitb', 'osmobb']
 CLIENTS.remove(DEFAULT_CLIENT_ID)
 
@@ -71,7 +71,7 @@ def on_connect(client, userdata, flags, rc):
 def on_message(client, userdata, message):
     msg, topic = message.payload.decode(), message.topic
 
-    ess.debugprint(source="MQTT",message=F"RX: {msg!r}\nTopic: {topic!r}\n",code=5)
+    ess.debugprint(source="MQTT",message=F"RX: {msg!r}\nTopic: {topic!r}\n",code=ess.INFO)
 
     if 'user' in msg and ess.is_json(msg) and topic == DEFAULT_CLIENT_ID:
         mst = json.loads(msg)
@@ -179,9 +179,13 @@ async def main():
     websocket_server = DEFAULTS['websocket_server']
     websocket_server['handle_client'] = handle_client
     
-
-    ##create tasks
     tasks = [ess.run_local_sock_server(**websocket_server), run_mqtt(client)]
+
+    if DEFAULT_CLIENT_ID == 'nitb':
+        tasks.append(ess.update_dns_task())
+        ess.debugprint(source="WEBSERVER",message=F"Starting DNS updater",code=ess.INFO)
+    ##create tasks
+    
     await asyncio.gather(*tasks)
     
 
@@ -189,14 +193,17 @@ if __name__ == '__main__':
     if not os.geteuid() == 0:
         print("Run as root!")
         exit(1)
-    freq, governor = ['1.4GHz','conservative']
-    #enable rt kernel priority 
-    subprocess.call("sysctl -w kernel.sched_rt_runtime_us=-1", shell=True, stdout=subprocess.DEVNULL)
 
-    #set cpu freq max to 1.3GHz and governor to conservative.
-    subprocess.call(F"cpupower frequency-set -g {governor}", shell=True, stdout=subprocess.DEVNULL)
-    subprocess.call(F"cpupower frequency-set -u {freq}", shell=True, stdout=subprocess.DEVNULL)
-    ess.debugprint(source="CPU SET",message=F"Frequency-max @ 1.4GHz 'conservative' cores [0-3]",code=ess.INFO)
+    if DEFAULT_CLIENT_ID == 'nitb':
+        freq, governor = ['1.4GHz','conservative']
+        #enable rt kernel priority 
+        subprocess.call("sysctl -w kernel.sched_rt_runtime_us=-1", shell=True, stdout=subprocess.DEVNULL)
+        #set cpu freq max to 1.3GHz and governor to conservative.
+        subprocess.call(F"cpupower frequency-set -g {governor}", shell=True, stdout=subprocess.DEVNULL)
+        subprocess.call(F"cpupower frequency-set -u {freq}", shell=True, stdout=subprocess.DEVNULL)
+        ess.debugprint(source="CPU SET",message=F"Frequency-max @ 1.4GHz 'conservative' cores [0-3]",code=ess.INFO)
+    else:
+        ess.debugprint(source="CPU SET",message=F"Skipping frequency setter",code=ess.INFO)
 
     
     loop = asyncio.get_event_loop()

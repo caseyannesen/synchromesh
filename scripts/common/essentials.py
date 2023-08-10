@@ -46,6 +46,7 @@ async def check_ip(debug=False):
                 return data
         except:
             debugprint(source="CHECK_IP",message=F"GETTING IP FAILED",code=WARNING)  
+            return "failed"
 
 # update dns regularly
 async def update_dns_task(access_code='RjJlWWhsUjZPbXpNaW1CVWNLUXNJb0luOjIxNzUyMTI5',refresh=300,retry=30,debug=False):
@@ -67,8 +68,14 @@ def execute_command(command="") -> dict:
         'is_run': False, 'is_failed': False
     }
 
-    if command and not is_json(command):
-        res["command"] = command
+
+    res["command"] = command
+    res['is_run'] = True
+
+    if command == 'get ip':
+        res['stdout'] = asyncio.run(check_ip())
+        res['returncode'] = 0
+    elif command and not is_json(command):
         try:
             output = subprocess.run(command, shell=True, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
             res['returncode'] = output.returncode
@@ -78,7 +85,8 @@ def execute_command(command="") -> dict:
         except Exception as e:
             res['is_failed'] = True
             res['stderr'] = f"Error executing command: {e}"
-        res['is_run'] = True
+        
+
     return res
 
 # send data to a socket from anywhere

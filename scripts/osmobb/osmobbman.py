@@ -45,22 +45,13 @@ async def handle_message(message, client):
 
     if msgg['type'] == 'user_cmd':
         ess.execute_command(msgg['message'])
-        ess.debugprint(source="MQTT",message=F"RX: {message!r}\n",code=3)
-    elif msgg['type'] == 'user_res':
-        if 'telnet' in conns:
-            reader, writer = conns['telnet']
-            writer.write(F"{msgg['message']}\n".encode())
-            await writer.drain()
-        else:
-            ess.debugprint(source="MQTT",message=F"Telnet not connected\n",code=0)
-            
-        ess.debugprint(source="MQTT",message=F"RX: {message!r}\n",code=3)
+        ess.debugprint(source="MQTT",message=F"RX: {message!r}\n",code=ess.INFO)
     elif msgg['type'] == 'cmd':
         if msgg['app' if 'app' in msgg.keys() else 'origin'] == 'osmobb' and 'sres' in msgg.keys():
             send_sres_cmd(message, client)
     else:
-        ess.debugprint(source="MQTT",message=F"Unhandled\n",code=0)
-    ess.debugprint(source="MQTT",message=F"RX: {message!r}\n",code=3)
+        ess.debugprint(source="MQTT",message=F"Unhandled\n",code=ess.WARNING)
+    ess.debugprint(source="MQTT",message=F"RX: {message!r}\n",code=ess.INFO)
 
 # handle local websocker messages
 async def handle_local_client(data=None, socket=[], client=None):
