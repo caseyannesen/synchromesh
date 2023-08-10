@@ -19,7 +19,7 @@ import json
 
 
 
-DEFAULT_CLIENT_ID = "nitb"
+DEFAULT_CLIENT_ID = "osmobb"
 CLIENTS = ['nitb', 'osmobb']
 CLIENTS.remove(DEFAULT_CLIENT_ID)
 
@@ -147,7 +147,9 @@ async def handle_client(reader, writer):
                 continue
         elif data.startswith('cmd '):
             dat = {'type':'user_act', 'message':data[4:], 'is_res': False, 'is_json': False, 'origin': DEFAULT_CLIENT_ID}
-            client.publish("osmobb", json.dumps(dat))
+            for pub in DEFAULTS['broker']['publish_to']:
+                client.publish(pub, json.dumps(dat))
+                ess.debugprint(source="WEBSOCKET",message=F"Sent {dat} to {pub}",code=ess.INFO)
         else:
             if DEFAULT_CLIENT_ID == 'osmobb':
                 await obm.handle_local_client(data=data, socket=socket, client=client)
