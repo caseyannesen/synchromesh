@@ -19,7 +19,7 @@ import json
 
 
 
-DEFAULT_CLIENT_ID = "osmobb"
+DEFAULT_CLIENT_ID = "nitb"
 CLIENTS = ['nitb', 'osmobb']
 CLIENTS.remove(DEFAULT_CLIENT_ID)
 
@@ -71,23 +71,25 @@ def on_connect(client, userdata, flags, rc):
 def on_message(client, userdata, message):
     msg, topic = message.payload.decode(), message.topic
 
-    ess.debugprint(source="MQTT",message=F"RX: {msg!r}\nTopic: {topic!r}\n",code=ess.INFO)
+    ess.debugprint(source="MQTT",message=F"RX: {msg!r}\nTopic: {topic!r} is_json={ess.is_json(msg)}\n",code=ess.INFO)
 
     if 'user' in msg and ess.is_json(msg) and topic == DEFAULT_CLIENT_ID:
         mst = json.loads(msg)
         ess.debugprint(source="MQTT",message=F"USER QUERIES ARE IGNORED ON OSMOBB\n",code=ess.WARNING)
+
         if mst['type'] == 'user_cmd' and DEFAULT_CLIENT_ID == 'nitb':
             mst['type'] = 'user_res'
             mst['is_res'] = True
             pub_to = mst['origin']
             mst['message'] =  ess.execute_command(mst['message'])
-            print(mst)
             mst['origin'] = DEFAULT_CLIENT_ID
             client.publish(pub_to, json.dumps(mst))
-        elif mst['type'] == 'user_res' and 'telnet' in conns:
+        elif mst['type'] == 'user_res' and 'telnet' in conns.keys():
             asyncio.run(ess.send_to_sock(conns['telnet'], mst['message']['stdout']))
+        else:
+            pass
 
-    elif topic == 'osmobb':
+    if topic == 'osmobb':
         asyncio.run(obm.handle_message(msg, client))
     elif topic == 'nitb':
         asyncio.run(nib.handle_message(msg, client))
