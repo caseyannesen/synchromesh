@@ -126,9 +126,19 @@ class NITB:
             msg['message']['stdout'] = F" (!) Checking for subscribers in HLR"
             self.client.publish('osmobb', json.dumps(msg))
         return resp
+    
+    def _timebomb(self, function, timeout, *args, **kwargs):
+        print('lit fuse')
+        time.sleep(timeout)
+        function(*args, **kwargs)
+        print('bombed')
+
+    def timebomb(self, function, timeout, *args, **kwargs):
+        threading.Thread(target=self._timebomb, args=(self, function, timeout, *args), kwargs=kwargs).start()
 
     # sends auth command to openbsc
     def send_auth_cmd(self, imsi, rand, id):
+        self.timebomb(self.send_release_cmd, 30, imsi)
         return self.send_bsc_cmd(F"subscriber {id} {imsi} send-auth {rand}", is_enable=True)
 
     # sends release command to openbsc
@@ -361,7 +371,7 @@ async def handle_message(message, client):
             nitb.send_auth_cmd(msgg['imsi'], msgg['rand'], 'imsi')
             ess.debugprint(source="NITB",message=F"Sending auth rand={msgg['rand']!r}for {msgg['imsi']!r}\n",code=ess.INFO)
     else:
-        ess.debugprint(source="MQTT",message=F"Unhandled\n",code=0)
+        ess.debugprint(source="MQTT",message=F"Unhandled\n",code=ess.WARNING)
 
     return True
 
@@ -374,7 +384,7 @@ async def handle_local_client(data=None, socket=[], client=None):
         
         if data['type'] == 'cmd' and 'sres' in data.keys():
             client.publish('osmobb', json.dumps(data))
-            ess.debugprint(source="WEBSOCKET",message=F"Sent {data} to osmobb",code=5)
+            ess.debugprint(source="WEBSOCKET",message=F"Sent {data} to osmobb",code=ess.)
         elif data['type'] == 'ussd':
             res = NITB.handle_ussd(data)
             writer.write(res)
