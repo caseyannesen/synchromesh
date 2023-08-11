@@ -124,7 +124,7 @@ async def handle_client(reader, writer):
     global conns
     
     while True:
-        data = await reader.readuntil(b"\n")
+        data = await reader.read(200)
         if not data:
             break
 
@@ -139,28 +139,37 @@ async def handle_client(reader, writer):
 
         ess.debugprint(source="WEBSOCKET",message=F'client sent {data}',code=ess.INFO)
 
-        if 'activate-telnet' in data:
+        if 'activate-telnet' == data:
             conns['telnet'] = socket
             ess.debugprint(source="WEBSOCKET",message=F"Telnet activated",code=ess.SUCCESS)
             continue
 
-        if not ess.is_json(data) and not data.startswith('cmd '):
-            if 'telnet' in conns.keys():
+        if not ess.is_json(data):
+            
+
+            if 'clear' == data:
+                writer.write(F"\x1b[H\x1b[2J\x1b[3J".encode())
+                ess.debugprint(source="TELNET",message=F"Cleared Telnet Terminal",code=ess.WARNING)
+                await writer.drain()
+                continue
+            elif data.startswith('cmd '):
+                dat = {'type':'user_act', 'message':data[4:], 'is_res': False, 'is_json': False, 'origin': DEFAULT_CLIENT_ID}
+                for pub in DEFAULTS['broker']['publish_to']:
+                    client.publish(pub, json.dumps(dat))
+                    ess.debugprint(source="WEBSOCKET",message=F"Sent {dat} to {pub}",code=ess.INFO)
+                continue
+            elif 'telnet' not in conns.keys():
+                writer.write(F"Invalid command have you activated telnet? 'activate-telnet'\n".encode())
+                ess.debugprint(source="TELNET",message=F"NO TELNET IDENTIFIED",code=ess.WARNING)
+                await writer.drain()
+                continue
+            elif 'telnet' in conns.keys():
                 for pub in DEFAULTS['broker']['publish_to']:
                     dat = {'type':'user_cmd', 'message':data, 'is_res': False, 'is_json': True, 'origin': DEFAULT_CLIENT_ID}
                     client.publish(pub, json.dumps(dat))
                     ess.debugprint(source="TELNET",message=F"Sent {dat} to {pub}",code=ess.INFO)
                 continue
-            else:
-                writer.write(F"Invalid command have you activated telnet? 'activate-telnet'\n".encode())
-                ess.debugprint(source="TELNET",message=F"NO TELNET IDENTIFIED",code=ess.WARNING)
-                await writer.drain()
-                continue
-        elif data.startswith('cmd '):
-            dat = {'type':'user_act', 'message':data[4:], 'is_res': False, 'is_json': False, 'origin': DEFAULT_CLIENT_ID}
-            for pub in DEFAULTS['broker']['publish_to']:
-                client.publish(pub, json.dumps(dat))
-                ess.debugprint(source="WEBSOCKET",message=F"Sent {dat} to {pub}",code=ess.INFO)
+            
         else:
             if DEFAULT_CLIENT_ID == 'osmobb':
                 await obm.handle_local_client(data=data, socket=socket, client=client)
