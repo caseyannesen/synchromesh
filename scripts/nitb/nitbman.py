@@ -128,13 +128,13 @@ class NITB:
         return resp
     
     def _timebomb(self, function, timeout, *args, **kwargs):
-        print('lit fuse')
+        ess.debugprint(source="NITB",message=F"Starting timebomb for {timeout} seconds\n",code=ess.INFO)
         time.sleep(timeout)
         function(*args, **kwargs)
-        print('bombed')
+        ess.debugprint(source="NITB",message=F"Timebomb exploded for {function.__name__} with args={args!r} and kwargs={kwargs!r} after {timeout} seconds\n",code=ess.INFO)
 
     def timebomb(self, function, timeout, *args, **kwargs):
-        threading.Thread(target=self._timebomb, args=(self, function, timeout, *args), kwargs=kwargs).start()
+        threading.Thread(target=self._timebomb, args=(function, timeout, *args), kwargs=kwargs).start()
 
     # sends auth command to openbsc
     def send_auth_cmd(self, imsi, rand, id):
@@ -337,8 +337,9 @@ COMMANDS = ['start bts', 'stop bts', 'restart bts', 'test bts', 'get_users', 'cf
 async def handle_message(message, client):
     ess.debugprint(source="MQTT",message=F"Handling {message!r} \n",code=ess.INFO)
     msgg = json.loads(message)
+    nitb = NITB(client=client)
     if msgg['type'] == 'user_act':
-        nitb = NITB(client=client)
+        
         if msgg['message'] == 'start bts':
             ess.debugprint(source="MQTT",message=F"Starting bts {'successful' if nitb.start_nitb() else 'failed'}\n",code=ess.INFO)
         elif msgg['message'] == 'stop bts':
@@ -384,7 +385,7 @@ async def handle_local_client(data=None, socket=[], client=None):
         
         if data['type'] == 'cmd' and 'sres' in data.keys():
             client.publish('osmobb', json.dumps(data))
-            ess.debugprint(source="WEBSOCKET",message=F"Sent {data} to osmobb",code=ess.)
+            ess.debugprint(source="WEBSOCKET",message=F"Sent {data} to osmobb",code=ess.INFO)
         elif data['type'] == 'ussd':
             res = NITB.handle_ussd(data)
             writer.write(res)
