@@ -187,7 +187,9 @@ async def main():
     global client
     global conns
     global debug
-
+    global rands
+    
+    rands = {}
     conns = {}
     debug = True
 
