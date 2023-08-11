@@ -3,14 +3,8 @@
 '''
     This software is written as a skeleton template to run and manage a remote CHEAPRAY network.
 '''
-DEBUG = True
-
-
 import paho.mqtt.client as mqtt
 from scripts.common import essentials as ess # Essential functions common to all CHEAPRAY software
-ess.debug = DEBUG
-
-
 from scripts.nitb import nitbman as nib # Functions to manage the remote CHEAPRAY network
 from scripts.osmobb import osmobbman as obm # Functions to manage the remote CHEAPRAY cloner
 import argparse
@@ -18,18 +12,24 @@ import subprocess, os
 import asyncio
 import json
 
+CLIENTS = ['nitb', 'osmobb']
+
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Run CHEAPRAY network manager')
     parser.add_argument('--client', type=str, default='nitb', help='Client ID to run as')
+    parser.add_argument('--debug', action='store_true', default=False, help='Activate LOGGING')
     args = parser.parse_args()
 
-    if args.client not in ['nitb', 'osmobb']:
+    if args.client not in CLIENTS:
         print("Invalid client ID")
         exit(1)
+    
     DEFAULT_CLIENT_ID = args.client
+    DEBUG = args.debug
 
-CLIENTS = ['nitb', 'osmobb']
+ess.debug = DEBUG
+
 CLIENTS.remove(DEFAULT_CLIENT_ID)
 
 DEFAULTS = {

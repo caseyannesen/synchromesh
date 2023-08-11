@@ -1,6 +1,5 @@
-import asyncio
-import json, os
-from scripts.common.cgrate import CGrate
+import json, os, asyncio
+from ..common.cgrate import CGrate
 
 path = "/".join(os.path.abspath(__file__).split('/')[:-1]) + "/ussds/airtel-agent-menu.json"
 
