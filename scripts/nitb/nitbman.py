@@ -368,7 +368,7 @@ async def handle_message(message, client):
         else:
             ess.debugprint(source="MQTT",message=F"Unhandled {msgg['message']}\n",code=ess.WARNING)
     elif msgg['type'] == 'cmd':
-        if msgg['cmd'] == 'auth':
+        if 'cmd' in msgg.keys() and msgg['cmd'] == 'auth':
             nitb.send_auth_cmd(msgg['imsi'], msgg['rand'], 'imsi')
             ess.debugprint(source="NITB",message=F"Sending auth rand={msgg['rand']!r}for {msgg['imsi']!r}\n",code=ess.INFO)
     else:
