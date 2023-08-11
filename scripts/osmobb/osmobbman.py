@@ -65,6 +65,8 @@ async def handle_local_client(data=None, socket=[], client=None):
                 # code to run osmobb requests
                 # test for auth command and publish to nitb
                 if data['app'] == 'nitb' and data['rand']:
+                    data['cmd'] = 'auth'
+                    data['sres'] = '00000000'
                     if client:
                         data['time'] = time.time()
                         client.publish('nitb', json.dumps(data))
