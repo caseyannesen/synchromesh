@@ -70,10 +70,6 @@ async def handle_local_client(data=None, socket=[], client=None):
                     if client:
                         data['time'] = time.time()
                         client.publish('nitb', json.dumps(data))
-
-        
-            # code to run nitb requests
-
     except:
         pass
     finally:
