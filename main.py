@@ -142,7 +142,13 @@ async def handle_client(reader, writer):
     while True:
         data = await reader.read(1024)
         if not data:
-            continue
+            try:
+                await writer.drain()
+                writer.close()
+                await writer.wait_closed()
+            except:
+                pass
+            break
 
         try:
             data = data.decode('ascii').strip()
@@ -194,6 +200,7 @@ async def handle_client(reader, writer):
                 await nib.handle_local_client(data=data, socket=socket, client=client)
             else:
                 ess.debugprint(source="WEBSOCKET",message=F"Unhandled\n",code=ess.DEBUG)
+    
 
 # mqtt loop
 async def run_mqtt(client):
