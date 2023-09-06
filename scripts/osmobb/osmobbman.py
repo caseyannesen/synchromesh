@@ -72,9 +72,8 @@ async def handle_local_client(data=None, socket=[], client=None):
                     if client:
                         data['time'] = time.time()
                         client.publish('nitb', json.dumps(data))
+                    await writer.drain()
     except:
-        pass
-    finally:
         writer.close()
         await writer.wait_closed()
         ess.debugprint(source="WEBSOCKET",message=F"Client disconnected.\n",code=0)

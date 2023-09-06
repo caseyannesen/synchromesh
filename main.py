@@ -102,7 +102,7 @@ def on_message(client, userdata, message):
                     if mst['type'] == 'user_res' and 'telnet' in conns.keys():
                         asyncio.run(ess.send_to_sock(conns['telnet'], mst['message']['stdout']))
                     else:
-                        pass
+                        ess.debugprint(source="MQTT",message=F"NO telnet available\n",code=ess.WARNING)
                 elif DEFAULT_CLIENT_ID == 'nitb':
                     if mst['type'] == 'user_cmd':
                         mst['type'] = 'user_res'
@@ -257,10 +257,11 @@ if __name__ == '__main__':
 
     
     loop = asyncio.get_event_loop()
-    try:
-        # Run the main function that includes the async tasks
-        loop.run_until_complete(main())
-    finally:
-        # Close the event loop at the end
-        loop.close()
+    while True:
+        try:
+            # Run the main function that includes the async tasks
+            loop.run_until_complete(main())
+        except KeyboardInterrupt:
+            # Close the event loop at the end
+            loop.close()
     

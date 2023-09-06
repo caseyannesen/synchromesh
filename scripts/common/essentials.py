@@ -97,8 +97,9 @@ async def send_to_sock(sock, message, is_telnet=False):
         writer.write(F"{message}\n$ ".encode())
         await writer.drain()
         debugprint(source=F"WEBSOCKET/{'TELNET' if is_telnet else ''}",message=F"Sent {message} via websocket",code=INFO)
-    except:
+    except Exception as e:
         debugprint(source=F"WEBSOCKET/{'TELNET' if is_telnet else ''}",message=F"Sent {message} via websocket",code=WARNING)
+        debugprint(source="WEBSERVER",message=F"Raised, Exception {e}", code=WARNING)
         await writer.drain()
         await writer.close()
 
@@ -150,8 +151,6 @@ async def run_local_sock_server(address="",port="",id="",handle_client=None, **k
     try:
         await server.serve_forever()
     except KeyboardInterrupt:
-        pass
-    finally:
         server.close()
         await server.wait_closed()
         debugprint(source="WEBSERVER",message="WebSocket server stopped",code=0)
