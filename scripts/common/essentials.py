@@ -99,6 +99,8 @@ async def send_to_sock(sock, message, is_telnet=False):
         debugprint(source=F"WEBSOCKET/{'TELNET' if is_telnet else ''}",message=F"Sent {message} via websocket",code=INFO)
     except:
         debugprint(source=F"WEBSOCKET/{'TELNET' if is_telnet else ''}",message=F"Sent {message} via websocket",code=WARNING)
+        await writer.drain()
+        await writer.close()
 
 # Creates an mqtt client and connects to the broker
 async def get_client(address="",mqtt_port="",ws_port="",use_websockets=False,timeout="",username="",password="",
