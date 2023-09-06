@@ -144,12 +144,12 @@ async def handle_client(reader, writer):
             data = data.decode('ascii').strip()
         except:
             try:
-                data = data.decode('ascii').strip()
+                data = data.decode('utf-8').strip()
             except:
                 ess.debugprint(source="WEBSOCKET",message=F'Received Invalid data',code=ess.WARNING)
                 continue
 
-        ess.debugprint(source="WEBSOCKET",message=F'client sent {data}',code=ess.INFO)
+        ess.debugprint(source="WEBSOCKET",message=F"client sent {data!r}",code=ess.INFO)
 
         if 'activate-telnet' == data:
             conns['telnet'] = socket
