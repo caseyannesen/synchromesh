@@ -147,13 +147,18 @@ async def handle_client(reader, writer):
                 data = data.decode('utf-8').strip()
             except:
                 ess.debugprint(source="WEBSOCKET",message=F'Received Invalid data',code=ess.WARNING)
+                writer.write("$ ".encode())
+                await writer.drain()
                 continue
+
 
         ess.debugprint(source="WEBSOCKET",message=F"client sent {data!r}",code=ess.INFO)
 
         if 'activate-telnet' == data:
             conns['telnet'] = socket
             ess.debugprint(source="WEBSOCKET",message=F"Telnet activated",code=ess.SUCCESS)
+            writer.write("$ ".encode())
+            await writer.drain()
             continue
 
         if not ess.is_json(data):
