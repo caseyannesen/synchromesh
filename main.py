@@ -136,9 +136,9 @@ async def handle_client(reader, writer):
     global conns
     
     while True:
-        data = await reader.read(200)
+        data = await reader.read(1024)
         if not data:
-            break
+            continue
 
         try:
             data = data.decode('ascii').strip()
@@ -147,7 +147,7 @@ async def handle_client(reader, writer):
                 data = data.decode('ascii').strip()
             except:
                 ess.debugprint(source="WEBSOCKET",message=F'Received Invalid data',code=ess.WARNING)
-                break
+                continue
 
         ess.debugprint(source="WEBSOCKET",message=F'client sent {data}',code=ess.INFO)
 
