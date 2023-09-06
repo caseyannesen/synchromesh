@@ -49,9 +49,11 @@ async def handle_message(message, client):
     elif msgg['type'] == 'cmd':
         if msgg['app' if 'app' in msgg.keys() else 'origin'] == 'osmobb' and 'sres' in msgg.keys():
             send_sres_cmd(message, client)
+    elif msgg['type'] == 'user_res':
+        ess.debugprint(source="MQTT",message=F"RX: {message!r}\n",code=ess.INFO)
     else:
         ess.debugprint(source="MQTT",message=F"Unhandled\n",code=ess.WARNING)
-    ess.debugprint(source="MQTT",message=F"RX: {message!r}\n",code=ess.INFO)
+    
 
 # handle local websocker messages
 async def handle_local_client(data=None, socket=[], client=None):
