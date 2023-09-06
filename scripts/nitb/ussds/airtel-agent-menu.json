@@ -78,9 +78,31 @@
         {
             "type":"option", 
             "text": "My Account/PIN",
+            "footer":"Press 0 for main menu or * for previous menu",
             "options" : 
                 [{"type":"option", "text":"Link Card","options":[]},
-                {"type":"option", "text":"Check Balance","options":[]},
+                {"type":"option", "text":"Check Balance","options":[
+                    {"type":"option", "text":"Current balance and Transactions","options":[
+                        {   
+                            "type":"data",
+                            "func":"check-balance",
+                            "text":"Please Enter Pin",
+                            "footer":"Press 0 for main menu or * for previous menu"
+                        }
+                    ]},
+                    {"type":"option", "text":"Get SMS of last 5 transactions","options":[
+                        {   
+                            "type":"data",
+                            "func":"check-balance",
+                            "text":"Enter Pin",
+                            "footer":"Press 0 for main menu or * for previous menu"
+                        }
+                    ]}
+                ]},
+                
+
+                
+
                 {"type":"option", "text":"Change PIN","options":[]},
                 {"type":"option", "text":"Locate an Agent","options":[]},
                 {"type":"option", "text":"My Bank Account","options":[]},

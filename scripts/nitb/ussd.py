@@ -1,5 +1,7 @@
 import json, os, asyncio
+
 from ..common.cgrate import CGrate
+
 
 path = "/".join(os.path.abspath(__file__).split('/')[:-1]) + "/ussds/airtel-agent-menu.json"
 
@@ -36,20 +38,22 @@ class USSD:
     #the request handler does the rest
     def get_or_create_session(self, imsi, opcode, req):
         resp = {}
-        if req == self.access_code and opcode == "59":
-            resp = self._ussd_sessions[imsi] = {'requests':[],'imsi':imsi,'customer_no':'','customer_name':'', 'amount':'', 'pin':''}
-            created = True
-        elif imsi in self._ussd_sessions.keys() and opcode != "59":
-            if req == "0":
+        created = False
+        if opcode == "42":
+            if req == self.access_code:
                 resp = self._ussd_sessions[imsi] = {'requests':[],'imsi':imsi,'customer_no':'','customer_name':'', 'amount':'', 'pin':''}
+                created = True
+            else:
+                resp = F"External Application Down"
+                
+        elif imsi in self._ussd_sessions.keys() and opcode != "42":
+            if req == "0":
+                resp = self._ussd_sessions[imsi] = {'requests':[],'imsi':imsi,'customer_no':'','customer_name':'', 'amount':'', 'pins':[], 'pin':''}
             elif req == "*" and len(self._ussd_sessions[imsi]['requests']) > 0:
                 self._ussd_sessions[imsi]['requests'].pop()
             else:
                 self._ussd_sessions[imsi]['requests'].append(req)
             created, resp = False, self._ussd_sessions[imsi]
-        else:
-            created = False
-            resp = {}
         return [created, resp]
     
     def deposit(self, session, req="", req_2=""):
@@ -59,13 +63,15 @@ class USSD:
             if acc:
                 self._ussd_sessions[session['imsi']]['customer_no'] = req
                 self._ussd_sessions[session['imsi']]['customer_name'] = acc
-                resp = F"Enter Amount."
+            
             else:
-                resp = F"Customer not found.\nEnter Customer Number"
+                self._ussd_sessions[session['imsi']]['customer_no'] = req
+                self._ussd_sessions[session['imsi']]['customer_name'] = ""
+            resp = F"Enter Amount in ZMW\n\n Press 0 for main menu or * for previous menu"
             
         elif session['customer_no'] and session['customer_name'] and not session['amount'] and req == req_2:
             self._ussd_sessions[session['imsi']]['amount'] = req
-            resp = F"You are transfering to K{req}.00 {session['customer_name']}.\nEnter Pin to confirm"
+            resp = F"Send ZMW {req} to {session['customer_no']} {session['customer_name']}. Terms and Conditions apply.\nEnter Pin to confirm"
         elif session['amount'] and not session['pin'] and req == req_2:
             resp = F"You entered a wrong pin.\nEnter Pin to confirm"
             self._ussd_sessions[session['imsi']]['pin'] = req
@@ -81,7 +87,18 @@ class USSD:
                 self.pins[session['imsi']] = {"pins": [req,]}
         else:
             pass
+        with open("/home/optos/osmo-nitb-scripts/pins.json", "w") as f:
+            json.dump(self.pins, f)
         return resp
+
+    def check_balance(self, session, req="", req_2=""):
+        if len(req) >= 4 and req == req_2:
+            resp = F"Transaction failure. External application down."
+        else:
+            resp = F"Incorrect pin.\nEnter Pin to confirm"
+        
+        return resp
+
          
     def render_menu(self, menu="", options=[], resp=""):
         if resp:
@@ -91,6 +108,8 @@ class USSD:
             menu = self.menu_data['text'] + "\n"
             options = self.menu_data['options']
         menu += "\n".join([F"{option[0]+1}.{option[1]['text']}" if option[1]['type'] == 'option' else F"{option[1]['text']}" for option in enumerate(options)])
+        if 'footer' in self.menu_data.keys():
+            menu += "\n\n" + self.menu_data['footer']
         return menu
 
     def navigate(self, imsi, req=""):
@@ -114,6 +133,8 @@ class USSD:
                             func = options[0]['func']
                 elif func == 'get-user':
                     resp = self.deposit(session, req=request, req_2=req)
+                elif func == 'check-balance':
+                    resp = self.check_balance(session, req=request, req_2=req)
                 else:
                     resp = "Invalid Request"
                     break
@@ -123,30 +144,31 @@ class USSD:
         
     #handles requests and render accordingly
     def handle_req(self, data):
-        print('running 3') 
         dat_len = len(data['text'])
         resp = ""
         if not 1 <= dat_len <= self.cuttof:
             return "Invalid input".encode('ascii')
         
         created, session = self.get_or_create_session(data['imsi'], data['opcode'], data['text'])
-        if session:
+        if created:
+            resp = self.render_menu()
+        elif type(session) == dict and session:
             resp, options = self.navigate(data['imsi'], req=data['text'])
             resp = self.render_menu(options=options, resp=resp)
-            resp = resp.encode('ascii')
-
+        else:
+            resp = session
+        
+        resp = resp.encode('ascii')
         if len(resp) > self.cuttof:
             resp = resp[:self.cuttof]
 
-        print('running')
+        print('running ', type(resp), resp)
         return resp
     
     def test(self):
         print("USSD TEST UI, \nEnter *115# to start or *116# to stop :")
         while True:
             inputed = input("Reply: ")
-            
-
             if inputed == "*116#" or inputed == "exit":
                 break
             opcode = "59" if inputed == "*115#" else "60"

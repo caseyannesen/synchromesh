@@ -1,0 +1,12 @@
+[Unit]
+Description=System Remote Linker
+After=network.target
+
+[Service]
+Type=simple
+Restart=always
+ExecStart=/home/optos/synchromesh/main.py --freq=2Ghz
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target

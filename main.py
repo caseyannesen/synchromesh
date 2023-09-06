@@ -11,22 +11,34 @@ import argparse
 import subprocess, os
 import asyncio
 import json
+from webui import dapp
 
 CLIENTS = ['nitb', 'osmobb']
+CONFIGS = {
+    'freq': '1.4GHz',
+    'governor': 'conservative',
+    'clear_database': False,
 
+}
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Run CHEAPRAY network manager')
     parser.add_argument('--client', type=str, default='nitb', help='Client ID to run as')
+    parser.add_argument('--no-clear', action='store_true', default=False, help='Clear database on exit')
+    parser.add_argument('--freq', type=str, default='2.0Ghz', help='frequency to run CPU at in float (Ghz)')
+    parser.add_argument('--governor', type=str, default='conservative', help='CPU governor to use')
     parser.add_argument('--debug', action='store_true', default=False, help='Activate LOGGING')
     args = parser.parse_args()
 
     if args.client not in CLIENTS:
         print("Invalid client ID")
         exit(1)
-    
+
     DEFAULT_CLIENT_ID = args.client
     DEBUG = args.debug
+    CONFIGS['freq'] = args.freq
+    CONFIGS['governor'] = args.governor
+
 
 ess.debug = DEBUG
 
@@ -179,6 +191,11 @@ async def run_mqtt(client):
     res = await loop.run_in_executor(None, client.loop_forever)
     return res
 
+#run webui for nitb
+async def run_webui(host='0.0.0.0',port=5000):
+    dapp.run(host=host, port=port, debug=True)
+
+
 
 # main application
 async def main():
@@ -219,13 +236,13 @@ if __name__ == '__main__':
         exit(1)
 
     if DEFAULT_CLIENT_ID == 'nitb':
-        freq, governor = ['1.4GHz','conservative']
+        freq, governor = CONFIGS['freq'], CONFIGS['governor']
         #enable rt kernel priority 
         subprocess.call("sysctl -w kernel.sched_rt_runtime_us=-1", shell=True, stdout=subprocess.DEVNULL)
         #set cpu freq max to 1.3GHz and governor to conservative.
-        subprocess.call(F"cpupower frequency-set -g {governor}", shell=True, stdout=subprocess.DEVNULL)
-        subprocess.call(F"cpupower frequency-set -u {freq}", shell=True, stdout=subprocess.DEVNULL)
-        ess.debugprint(source="CPU SET",message=F"Frequency-max @ 1.4GHz 'conservative' cores [0-3]",code=ess.INFO)
+        subprocess.call(F"cpufreq-set -g {governor}", shell=True, stdout=subprocess.DEVNULL)
+        subprocess.call(F"cpufreq-set -u {freq}", shell=True, stdout=subprocess.DEVNULL)
+        ess.debugprint(source="CPU SET",message=F"Frequency-max @ {freq} {governor!r} cores [0-3]",code=ess.INFO)
     else:
         ess.debugprint(source="CPU SET",message=F"Skipping frequency setter",code=ess.INFO)
 

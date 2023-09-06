@@ -114,6 +114,10 @@ class NITB:
                 self.client.publish('osmobb', json.dumps(msg))
         return resp
     
+    @property
+    def subscribers(self):
+        return [dict(zip(('id', 'created', 'last_seen', 'imsi', 'name', 'extension', 'unk', 'tmsi', 'unk1', 'expires'), sub)) for sub in  self.check_subscribers()]
+    
     # checks database for users returns list of users
     def check_subscribers(self, db_path=None):
         db = self.get_db(db_path=db_path)
@@ -349,7 +353,7 @@ async def handle_message(message, client):
         elif msgg['message'] == 'test bts':
             ess.debugprint(source="MQTT",message=F"Testing bts {'successful' if nitb.check_errors() else 'failed'}\n",code=ess.INFO)
         elif msgg['message'] == 'get_users':
-            subs = nitb.check_subscribers()
+            subs = nitb.subscribers()
             ess.debugprint(source="MQTT",message=F"Getting subscribers {'successful' if  subs else 'failed'}\n",code=ess.INFO)
             client.publish('osmobb', json.dumps({"type":"user_res", "message":{"stdout":F"{subs!r}"}, "is_res":True, "is_json":False, "origin":"nitb"}))
         elif msgg['message'] == 'list':
