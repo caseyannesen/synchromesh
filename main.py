@@ -116,8 +116,8 @@ def on_message(client, userdata, message):
                 client.publish(pub_to, json.dumps(mst)) 
             else:
                 asyncio.run(nib.handle_message(msg, client))
-                
-            ess.debugprint(source="MQTT",message=F"Unhandled\n",code=ess)
+    else:
+        ess.debugprint(source="MQTT",message=F"Unhandled\n",code=ess)
 
 
 
